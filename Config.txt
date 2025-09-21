@@ -1,1 +1,334 @@
+*****************CONFIG AREA 0********************
+• Enable OSPF on all Area 0 interfaces on R1, R2, R3, and R4 and verify that OSPF neighbors have been established.
+• Configure all four routers to advertise their loopback addresses as well as their Area 0 connected networks via OSPF.
+• Advertise a default route from R1 to all other routers in Area 0. Make sure that this default route will be advertised regardless of whether or not R1 has a configured default route.
+• Configure a static default route on R1 that will direct traffic to the Internet.
+• Ensure that R3 becomes the DR and R2 becomes the BDR for the 20.20.20.0/24 network segment.
+
+R1:
+int e0/0
+ ip add 203.0.113.1  255.255.255.252
+ no shutdown
+int e0/1
+ ip add 20.20.20.1   255.255.255.0
+ no shutdown
+int loopback 0
+ ip add 1.1.1.1  255.255.255.255
+ no shutdown
+
+router ospf 1
+ net 1.1.1.1     0.0.0.0    area 0
+ net 20.20.20.0  0.0.0.255  area 0
+ default-information orignate always 
+
+ip route 0.0.0.0  0.0.0.0  203.0.113.2 
+
+R2:
+int e0/1
+ ip add 20.20.20.2   255.255.255.0
+ no shutdown
+int loopback 0 
+ ip add 2.2.2.2  255.255.255.255 
+ no shutdown
+
+router ospf 1
+ net 20.20.20.0  0.0.0.255  area 0
+ net 2.2.2.2     0.0.0.0    area 0
+
+int e0/1
+ ip ospf priority 50
+
+
+R3:
+int e0/1
+ ip add 20.20.20.3   255.255.255.0
+ no shutdown
+int loopback 0 
+ ip add 3.3.3.3  255.255.255.255 
+ no shutdown
+
+router ospf 1
+ net 20.20.20.0  0.0.0.255  area 0
+ net 3.3.3.3     0.0.0.0    area 0
+
+int e0/1
+ ip ospf priority 100
+
+
+R4:
+int e0/1
+ ip add 20.20.20.4   255.255.255.0
+ no shutdown
+int loopback 0 
+ ip add 4.4.4.4  255.255.255.255 
+ no shutdown
+
+router ospf 1
+ net 20.20.20.0  0.0.0.255  area 0
+ net 4.4.4.4     0.0.0.0    area 0
+
+
+*****************CONFIG AREA 2********************
+• Enable OSPF on all Area 2 interfaces on R3 and R7, including R7’s loopback interface, and verify that OSPF neighbors have been established.
+• Configure GigabitEthernet 0/2 on R7 to stop searching for potential OSPF neighbors, but to allow the connected subnet to still participate in OSPF.
+
+R3:
+int e0/2
+ ip add 192.168.6.3  255.255.255.0
+ no shutdown
+
+router ospf 1
+ net 192.168.6.0  0.0.0.255 area 2
+ 
+R7:
+int e0/1
+ ip add 192.168.6.7  255.255.255.0
+ no shutdown
+int e0/2
+ ip add 192.168.5.7  255.255.255.0
+ no shutdown
+int loopback 0
+ ip add 7.7.7.7  255.255.255.255
+ no shutdown
+
+router ospf 1
+ net 192.168.5.0  0.0.0.255 area 2
+ net 192.168.6.0  0.0.0.255 area 2
+ net 7.7.7.7      0.0.0.0   area 2
+ passive-interface e0/2
+
+*****************CONFIG AREA 51********************
+
+• Enable OSPF on all Area 51 interfaces on R2, R4, and R5 and verify that OSPF neighbors have been established.
+• Configure all three routers to advertise their Area 51 connected networks via OSPF.
+• Configure R5 to advertise its loopback address via OSPF.
+• Configure R5 with an explicitly stated router ID to become the DR for both of its connections in Area 51.
+• Configure R5 with static routes to all of the networks available on R6.
+• Configure R6 with a static default route to R5.
+• Redistribute static routes and connected networks into OSPF on R5.
+• Configure Area 51 as a Totally NSSA.
+
+R4:
+int e0/2
+ ip add 192.168.1.4   255.255.255.0
+ no shutdown
+
+router ospf 1
+ net 192.168.1.0  0.0.0.255   area 51
+
+R2:
+int e0/2
+ ip add 192.168.2.2   255.255.255.0
+ no shutdown
+ 
+router ospf 1
+ net 192.168.2.0  255.255.255.0  area 51
+ 
+
+R5:
+int e0/1
+ ip add 192.168.2.5   255.255.255.0
+ no shutdown
+int e0/2
+ ip add 192.168.1.5   255.255.255.0
+ no shutdown
+int e0/3
+ ip add 192.168.20.5   255.255.255.0
+ no shutdown
+int loopback 0
+ ip add 5.5.5.5   255.255.255.255
+ no shutdown
+
+router ospf 1
+ router-id 5.5.5.5
+ net 192.168.1.0  0.0.0.255 area 51
+ net 192.168.2.0  0.0.0.255 area 51
+ net 5.5.5.5      0.0.0.0   area 51
+
+
+ip route 192.168.20.0  255.255.255.0  192.168.20.6
+ip route 172.16.10.0   255.255.255.0  192.168.20.6
+ip route 172.16.11.0   255.255.255.0  192.168.20.6
+ip route 172.16.12.0   255.255.255.0  192.168.20.6
+ip route 6.6.6.6  255.255.255.255     192.168.20.6
+
+!Quảng bá route static trên R5 vào OSPF để quảng bá cho các router khác biết
+redistribute static
+redistribute connected
+
+R6:
+int e0/1
+ ip add 192.168.20.6  255.255.255.0
+ no shutdown
+int l0
+ ip add 6.6.6.6   255.255.255.255
+ no shutdown
+int l1
+ ip add 172.16.10.6   255.255.255.0
+ no shutdown
+int l2
+ ip add 172.16.11.6   255.255.255.0
+ no shutdown
+int l3
+ ip add 172.16.12.6   255.255.255.0
+ no shutdown
+
+ip route 0.0.0.0   0.0.0.0    192.168.20.5
+
+R5:
+router ospf 1
+ area 51 nssa 
+R4:
+router ospf 1
+ area 51 nssa no-summary
+R2:
+router ospf 1
+ area 51 nssa no-summary
+
+=> Cấu hình xong khi show ip route trên R5 thì tất cả các đường (O IA) sẽ được thay bằng đường định tuyến mặc định duy nhất được cân bằng tải giữa các ABR R2 và R4.
+
+
+*****************CONFIG AREA 3********************
+Area 3 is a special case, where a proprietary WAN protocol is being used. Although the network is using Ethernet, we want to ensure that this operates as point to multipoint non-broadcast network.
+
+• Enable OSPF on all Area 3 interfaces on R3, R9, and R10.
+• Configure all routers to advertise their Area 3 networks, and configure R9 and R10 to advertise their loopback addresses via OSPF.
+• Configure these routers to use a point-to-multipoint non-broadcast network type.
+**Có 3 kiểu 
++ Point-to-Multipoint Broadcast
+Xem interface như nhiều kết nối point-to-point.
+Không có DR/BDR election.
+Có hỗ trợ broadcast, nên OSPF có thể tự động phát hiện neighbor (không cần cấu hình neighbor).
+Hello được gửi dạng multicast 224.0.0.5.
+
+
++ Point-to-Multipoint Non-Broadcast
+Vẫn là point-to-multipoint (mỗi neighbor xem như point-to-point).
+Không có DR/BDR.
+Không hỗ trợ broadcast, vì vậy không thể tự động phát hiện neighbor.
+Cần cấu hình thủ công danh sách neighbor <ip> trong OSPF.
+Hello/LSA gửi bằng unicast đến từng neighbor.
+
+
++ Non-Broadcast (NBMA)
+Interface được coi là mạng multi-access nhưng không hỗ trợ broadcast.
+Có DR/BDR election.
+Không tự động phát hiện neighbor → phải cấu hình neighbor <ip>.
+Hello/LSA gửi unicast đến neighbor, nhưng có DR/BDR nên không cần full-mesh.
+
+
+• Configure R3 to become neighbors with R9 and R10 and verify neighbor adjacencies
+• Configure the hello and dead intervals on these OSPF routers to correspond to double the default values.
+• Configure Area 3 as a Stub area.
+
+R3:
+int e0/3
+ ip add 192.168.3.3  255.255.255.0  
+ no shutdown
+router ospf 1
+ net 192.168.3.0  0.0.0.255   area 3
+
+int e0/3
+ ip ospf network point-to-multipoint non-broadcast
+ ip ospf hello-interval 20
+ ip ospf dead-interval 80
+router ospf 1
+ neighbor 192.168.3.9
+ neighbor 192.168.3.10
+
+!R3 là hub còn R9,R10 là spokes nên chỉ R3 cấu hình neighboor. Khi show lên thì prio là 0
+
+router ospf 1 
+ area 3 stub
+
+R9:
+int e0/1
+ ip add 192.168.3.9  255.255.255.0
+ no shutdown
+router ospf 1
+ net 192.168.3.0  0.0.0.255   area 3
+ net 9.9.9.9      0.0.0.0     area 3
+int loopback 0
+ ip add 9.9.9.9 255.255.255.255
+ no shutdown
+
+int e0/1
+ ip ospf network point-to-multipoint non-broadcast
+ ip ospf hello-interval 20
+ ip ospf dead-interval 80
+
+router ospf 1
+ area 3 stub
+
+R10:
+int e0/1
+ ip add 192.168.3.10  255.255.255.0
+ no shutdown
+router ospf 1
+ net 192.168.3.0  0.0.0.255   area 3
+ net 10.10.10.10  0.0.0.0     area 3
+int loopback 0
+ ip add 10.10.10.10  255.255.255.255
+ no shutdown
+
+int e0/1
+ ip ospf network point-to-multipoint non-broadcast
+ ip ospf hello-interval 20
+ ip ospf dead-interval 80
+
+router ospf 1 
+ area 3 stub
+
+!area stub là vùng mà sẽ giảm thiểu các gói tin LSA đỡ tốn tài nguyên. Vùng area này sẽ chỉ biết các mạng area trong nó và IA và đường định tuyến default ra ngoài 
+
+*********CONFIG NON-Contiguous AREA 0**************
+•Enable OSPF on all Area 0 interfaces on R7 and R8 and verify that OSPF neighbors have been established.
+• Configure R7 and R8 to advertise their Area 0 interfaces via OSPF.
+• Configure R8 to advertise its loopback address via OSPF.
+• Create a Virtual Link between R3 and R7 to ensure the non-contiguous Area 0 is correctly connected to the backbone network.
+
+
+
+R7:
+int e0/3
+ ip add 192.168.30.7  255.255.255.0 
+ no shutdown
+
+router ospf 1 
+ net 192.168.30.0  0.0.0.255 area 0
+
+!area 0 đang bị phân tách bơi 1 cái area 2 nào đó, nên cta phải sử dụng virtual-link để nối 2 cái area 0 backbone lại
+
+router ospf 1
+ area 2 virtual-link 3.3.3.3
+
+R3:
+router ospf 1
+ area 2 virtual-linl 7.7.7.7
+R8:
+int e0/1
+ ip add 192.168.30.8  255.255.255.0
+ no shutdown
+int loopback 0
+ ip add 8.8.8.8  255.255.255.255.
+ no shutdown
+
+router ospf 1
+ net 192.168.30.0  0.0.0.255 area 0
+ net 8.8.8.8  0.0.0.0  area 0
+
+******************************************
+INTERNET:
+int e0/0  
+ ip add 203.0.113.2  255.255.255.252
+ no shutdown
+ 
+ip route 0.0.0.0 0.0.0.0 203.0.113.1
+
+
+
+
+
+
+
 
